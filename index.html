@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ECG Monitor</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial; text-align: center; padding: 40px; }
+    canvas { width: 100%; max-width: 800px; height: 400px; }
+    #status { font-size: 20px; margin-top: 10px; color: red; }
+  </style>
+</head>
+<body>
+  <h2>📈 Real-Time ECG Monitor</h2>
+  <p id="status">Status: Normal</p>
+  <canvas id="ecgChart"></canvas>
+
+  <script>
+    // 🔧 Paste your Firebase config here
+    const firebaseConfig = {
+  apiKey: "AIzaSyDyce2FjLQ-_krXORHXAAKhp5UdUWFmjJ0",
+  authDomain: "ecgiot-e7859.firebaseapp.com",
+  databaseURL: "https://ecgiot-e7859-default-rtdb.firebaseio.com",
+  projectId: "ecgiot-e7859",
+  storageBucket: "ecgiot-e7859.firebasestorage.app",
+  messagingSenderId: "535815496770",
+  appId: "1:535815496770:web:2f51313f27b41f1600b9db",
+  measurementId: "G-9ERQT6LJKY"
+};
+
+    // ✅ Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ✅ Create chart
+    const ctx = document.getElementById("ecgChart").getContext("2d");
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'ECG',
+          data: [],
+          borderColor: 'red',
+          fill: false,
+          tension: 0.1
+        }]
+      },
+      options: {
+        animation: false,
+        scales: {
+          x: { display: false },
+          y: { min: 0, max: 1024 }
+        }
+      }
+    });
+
+    // ✅ Listen to ECG value from Firebase
+    db.ref("/ecg/value").on("value", snapshot => {
+      const ecgValue = snapshot.val();
+      const now = new Date().toLocaleTimeString();
+
+      chart.data.labels.push(now);
+      chart.data.datasets[0].data.push(ecgValue);
+
+      // Keep only last 50 points
+      if (chart.data.labels.length > 50) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+      }
+
+      chart.update();
+    });
+
+    // ✅ Show status
+    db.ref("/ecg/status").on("value", snapshot => {
+      const status = snapshot.val();
+      document.getElementById("status").innerText = `Status: ${status}`;
+    });
+  </script>
+</body>
+</html>
